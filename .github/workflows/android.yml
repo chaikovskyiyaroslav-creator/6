@@ -1,4 +1,4 @@
-name: Android CI Final Recovery
+name: Android CI Final Success
 
 on: [push, workflow_dispatch]
 
@@ -20,21 +20,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Generate Gradle Wrapper
-        run: |
-          # Знаходимо папку, де лежить build.gradle
-          PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
-          cd $PROJECT_ROOT
-          # Встановлюємо стандартний Gradle, щоб згенерувати локальний wrapper
-          sudo apt-get install gradle -y
-          gradle wrapper
-          chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper # Якщо wrapper немає, він спробує підібрати версію 8.0+
 
       - name: Build with Gradle
         run: |
+          # Знаходимо папку з проектом
           PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
           cd $PROJECT_ROOT
-          ./gradlew assembleDebug
+          # Спробуємо зібрати через встановлений gradle
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
