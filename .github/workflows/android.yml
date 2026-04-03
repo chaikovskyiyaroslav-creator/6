@@ -1,4 +1,4 @@
-name: Android CI Final Attempt
+name: Android CI Final Recovery
 
 on: [push, workflow_dispatch]
 
@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unzip if zip exists
+      - name: Unzip project (if exists)
         run: |
           if [ -f project.zip ]; then
             unzip -o project.zip
@@ -20,23 +20,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Gradle Wrapper Path
+      - name: Force Generate Gradle Wrapper
         run: |
-          # Ця команда знаходить, куди саме розпакувався файл .jar і копіює його туди, де його шукає система
-          JAR_PATH=$(find . -name "gradle-wrapper.jar" | head -n 1)
-          mkdir -p gradle/wrapper
-          cp "$JAR_PATH" gradle/wrapper/gradle-wrapper.jar
-          
-          # Знаходимо gradlew і даємо йому права на запуск
-          GRADLEW_FILE=$(find . -name "gradlew" | head -n 1)
-          chmod +x "$GRADLEW_FILE"
-          
-          # Запам'ятовуємо шлях до папки з проектом
-          echo "PROJECT_DIR=$(dirname "$GRADLEW_FILE")" >> $GITHUB_ENV
+          # Знаходимо папку, де лежить build.gradle
+          PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
+          cd $PROJECT_ROOT
+          # Встановлюємо стандартний Gradle, щоб згенерувати локальний wrapper
+          sudo apt-get install gradle -y
+          gradle wrapper
+          chmod +x gradlew
 
       - name: Build with Gradle
         run: |
-          cd ${{ env.PROJECT_DIR }}
+          PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
+          cd $PROJECT_ROOT
           ./gradlew assembleDebug
 
       - name: Upload APK
