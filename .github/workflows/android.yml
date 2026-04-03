@@ -1,4 +1,4 @@
-name: Android CI Final Fix
+name: Android CI Final Miracle
 
 on: [push, workflow_dispatch]
 
@@ -23,15 +23,31 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.2 # Версія, яка найбільш стабільна для Java 17
+          gradle-version: 8.2
 
-      - name: Force Build (Ignore libs error)
+      - name: Patch Missing Version Catalog
         run: |
-          # Знаходимо папку з проектом
+          # Знаходимо папку проекту
+          PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
+          mkdir -p $PROJECT_ROOT/gradle
+          
+          # Створюємо файл, якого не вистачає
+          cat <<EOF > $PROJECT_ROOT/gradle/libs.versions.toml
+          [versions]
+          agp = "8.2.0"
+          kotlin = "1.9.0"
+          
+          [plugins]
+          android-application = { id = "com.android.application", version.ref = "agp" }
+          kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+          EOF
+
+      - name: Final Build Attempt
+        run: |
           PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
           cd $PROJECT_ROOT
-          # Якщо файл libs.versions.toml відсутній, ми змусимо проект не звертати на це уваги
-          ./gradlew assembleDebug -Pandroid.defaults.buildfeatures.buildconfig=true --stacktrace || gradle assembleDebug
+          chmod +x gradlew || gradle wrapper
+          ./gradlew assembleDebug --no-daemon
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
