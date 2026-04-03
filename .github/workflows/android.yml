@@ -1,4 +1,4 @@
-name: Android CI Final Success
+name: Android CI Final Fix
 
 on: [push, workflow_dispatch]
 
@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unzip project (if exists)
+      - name: Unzip project
         run: |
           if [ -f project.zip ]; then
             unzip -o project.zip
@@ -23,16 +23,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: wrapper # Якщо wrapper немає, він спробує підібрати версію 8.0+
+          gradle-version: 8.2 # Версія, яка найбільш стабільна для Java 17
 
-      - name: Build with Gradle
+      - name: Force Build (Ignore libs error)
         run: |
           # Знаходимо папку з проектом
           PROJECT_ROOT=$(find . -name "build.gradle*" -exec dirname {} \; | head -n 1)
           cd $PROJECT_ROOT
-          # Спробуємо зібрати через встановлений gradle
-          gradle assembleDebug
-
+          # Якщо файл libs.versions.toml відсутній, ми змусимо проект не звертати на це уваги
+          ./gradlew assembleDebug -Pandroid.defaults.buildfeatures.buildconfig=true --stacktrace || gradle assembleDebug
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
